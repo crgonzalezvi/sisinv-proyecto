@@ -23,28 +23,38 @@ class GatewayController extends Controller
             return response()->json(['error' => 'Servicio o dominio no encontrado en el API Gateway'], 404);
         }
 
-        // 3. Construimos la URL final hacia el microservicio
-        $baseUrl = $services[$service];
-        // Asumimos que los microservicios también tendrán prefijo /api/
-        $url = $path ? "{$baseUrl}/api/{$path}" : "{$baseUrl}/api";
+        // 3. Construimos la URL final incluyendo {$service}
+        $baseUrl = rtrim($services[$service], '/');
+        $url = $path 
+            ? "{$baseUrl}/api/{$service}/{$path}" 
+            : "{$baseUrl}/api/{$service}";
 
-        // 4. Reenviamos la petición HTTP exacta al microservicio
+        // 4. Reenviamos la petición filtrando solo las cabeceras necesarias
         try {
-            $response = Http::withHeaders($request->headers->all())
+            $headers = [
+                'Accept'       => 'application/json',
+                'Content-Type' => $request->header('Content-Type', 'application/json'),
+            ];
+
+            if ($request->hasHeader('Authorization')) {
+                $headers['Authorization'] = $request->header('Authorization');
+            }
+
+            $response = Http::withHeaders($headers)
                 ->send($request->method(), $url, [
                     'query' => $request->query(),
                     'body'  => $request->getContent(),
                 ]);
 
-            // 5. Devolvemos al cliente la respuesta tal cual la dio el microservicio
+            // 5. Devolvemos la respuesta limpia
             return response($response->body(), $response->status())
-                ->withHeaders($response->headers());
+                ->header('Content-Type', $response->header('Content-Type', 'application/json'));
                 
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'El microservicio destino no responde.',
+                'error'   => 'El microservicio destino no responde.',
                 'detalle' => $e->getMessage()
-            ], 503); // 503 Service Unavailable
+            ], 503);
         }
     }
 }
