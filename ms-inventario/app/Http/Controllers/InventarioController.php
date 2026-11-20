@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+
+class InventarioController extends Controller
+{
+    public function crearBodega(Request $request): JsonResponse
+    {
+        $datos = $request->validate(['nombre' => 'required|string|max:255|unique:bodegas']);
+        $id = DB::table('bodegas')->insertGetId($datos);
+
+        return response()->json(['id' => $id, 'nombre' => $datos['nombre']], 201);
+    }
+
+    public function registrarEntrada(Request $request): JsonResponse
+    {
+        $datos = $request->validate([
+            'bodega_id' => 'required|integer|exists:bodegas,id',
+            'producto_id' => 'required|uuid',
+            'cantidad' => 'required|integer|min:1|max:2147483647',
+        ]);
+
+        try {
+            $producto = Http::baseUrl(config('services.productos.url'))->timeout(3)
+                ->get('/api/productos/'.$datos['producto_id']);
+        } catch (ConnectionException) {
+            return response()->json(['error' => 'Productos no responde.'], 503);
+        }
+
+        if ($producto->notFound()) {
+            return response()->json(['error' => 'El producto no existe.'], 422);
+        }
+        if (! $producto->successful()) {
+            return response()->json(['error' => 'No se pudo verificar el producto.'], 502);
+        }
+
+        $id = DB::table('entradas')->insertGetId($datos);
+
+        return response()->json(['id' => $id] + $datos, 201);
+    }
+
+    public function stock(int $bodega, string $producto): JsonResponse
+    {
+        abort_unless(DB::table('bodegas')->where('id', $bodega)->exists(), 404, 'Bodega no encontrada.');
+
+        $cantidad = DB::table('entradas')->where('bodega_id', $bodega)
+            ->where('producto_id', $producto)->sum('cantidad');
+
+        return response()->json(['bodega_id' => $bodega, 'producto_id' => $producto, 'stock' => (int) $cantidad]);
+    }
+}
