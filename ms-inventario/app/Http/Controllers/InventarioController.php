@@ -47,6 +47,9 @@ class InventarioController extends Controller
 
     public function recibirOrden(Request $request): JsonResponse
     {
+        $clave = config('services.ordenes.clave');
+        abort_unless($clave && hash_equals($clave, $request->header('X-Ordenes-Key', '')), 403);
+
         $datos = $request->validate([
             'orden_id' => 'required|uuid',
             'bodega_id' => 'required|integer|exists:bodegas,id',

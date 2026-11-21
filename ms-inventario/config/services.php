@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'ordenes' => ['clave' => env('ORDENES_INTERNAL_KEY')],
     'productos' => ['url' => env('MS_PRODUCTOS_URL', 'http://127.0.0.1:8002')],
 
     /*
