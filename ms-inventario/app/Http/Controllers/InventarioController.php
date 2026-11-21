@@ -45,6 +45,39 @@ class InventarioController extends Controller
         return response()->json(['id' => $id] + $datos, 201);
     }
 
+    public function recibirOrden(Request $request): JsonResponse
+    {
+        $datos = $request->validate([
+            'orden_id' => 'required|uuid',
+            'bodega_id' => 'required|integer|exists:bodegas,id',
+            'detalles' => 'required|array|min:1',
+            'detalles.*.producto_id' => 'required|uuid|distinct',
+            'detalles.*.cantidad' => 'required|integer|min:1|max:2147483647',
+        ]);
+
+        return DB::transaction(function () use ($datos) {
+            $recepcion = [
+                'orden_id' => $datos['orden_id'],
+                'bodega_id' => $datos['bodega_id'],
+                'huella' => hash('sha256', json_encode($datos['detalles'])),
+            ];
+            if (! DB::table('recepciones')->insertOrIgnore($recepcion)) {
+                abort_unless(DB::table('recepciones')->where($recepcion)->exists(), 409, 'La recepción ya tiene otros datos.');
+                return response()->json(['orden_id' => $datos['orden_id']]);
+            }
+
+            foreach ($datos['detalles'] as $detalle) {
+                DB::table('entradas')->insert([
+                    'bodega_id' => $datos['bodega_id'],
+                    'producto_id' => $detalle['producto_id'],
+                    'cantidad' => $detalle['cantidad'],
+                ]);
+            }
+
+            return response()->json(['orden_id' => $datos['orden_id']], 201);
+        });
+    }
+
     public function stock(int $bodega, string $producto): JsonResponse
     {
         abort_unless(DB::table('bodegas')->where('id', $bodega)->exists(), 404, 'Bodega no encontrada.');
