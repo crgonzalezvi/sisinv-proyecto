@@ -100,8 +100,14 @@ app.post(ruta + '/:id/recepciones', async (req, res) => {
 });
 
 app.use((error, req, res, next) => {
+    console.error('ERROR EN ORDENES:', error);
     const status = error.status || (['TypeError', 'TimeoutError'].includes(error.name) ? 503 : 500);
-    res.status(status).json({ error: status >= 500 ? 'No se pudo completar la operación.' : error.message });
+    res.status(status).json({
+        error: error.message,
+        detalle: error.cause?.message || error.name
+    });
 });
 
-app.listen(process.env.PORT || 8005, '127.0.0.1');
+app.listen(process.env.PORT || 8005, '127.0.0.1', () => {
+    console.log('ms-ordenes corriendo en 8005 | Proveedores:', proveedores, '| Productos:', productos);
+});

@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import re
 from uuid import uuid4
 
@@ -112,4 +114,4 @@ def dar_de_baja(identificador):
 
 
 if __name__ == "__main__":
-    app.run(port=8004)
+    app.run(port=8003)
