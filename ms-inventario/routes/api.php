@@ -9,4 +9,6 @@ Route::prefix('inventario')->controller(InventarioController::class)->group(func
     Route::post('entradas', 'registrarEntrada');
     Route::get('bodegas/{bodega}/productos/{producto}/stock', 'stock')
         ->whereNumber('bodega')->whereUuid('producto');
+    Route::get('bodegas/{bodega}/productos/{producto}/kardex', 'kardex')
+    ->whereNumber('bodega')->whereUuid('producto');
 });

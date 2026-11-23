@@ -90,4 +90,35 @@ class InventarioController extends Controller
 
         return response()->json(['bodega_id' => $bodega, 'producto_id' => $producto, 'stock' => (int) $cantidad]);
     }
+
+    public function kardex(int $bodega, string $producto): JsonResponse
+    {
+        abort_unless(DB::table('bodegas')->where('id', $bodega)->exists(), 404, 'Bodega no encontrada.');
+
+        $entradas = DB::table('entradas')
+            ->where('bodega_id', $bodega)
+            ->where('producto_id', $producto)
+            ->orderBy('id')
+            ->get();
+
+        $saldo = 0;
+        $movimientos = $entradas->map(function ($e) use (&$saldo) {
+            $saldo += (int) $e->cantidad;
+            return [
+                'id' => $e->id,
+                'bodega_id' => $e->bodega_id,
+                'producto_id' => $e->producto_id,
+                'tipo_movimiento' => 'ENTRADA',
+                'cantidad_delta' => (int) $e->cantidad,
+                'saldo_posterior' => $saldo,
+            ];
+        });
+
+        return response()->json([
+            'bodega_id' => $bodega,
+            'producto_id' => $producto,
+            'saldo_actual' => $saldo,
+            'movimientos' => $movimientos,
+        ]);
+    }
 }
