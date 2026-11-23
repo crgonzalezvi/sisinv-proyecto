@@ -1,0 +1,16 @@
+tag,endpoint,perfil,reqs,fails,pct_fail,rps,avg_ms,p95_ms,max_ms
+entradas,POST /inventario/entradas,carga,204,0,0.0,3.49,1653.0,2200.0,2309.0
+entradas,POST /inventario/entradas,estres,205,0,0.0,3.5,10495.0,13000.0,13610.2
+entradas,POST /inventario/entradas,capacidad,180,0,0.0,3.09,17636.2,28000.0,28120.9
+kardex,GET /inventario/kardex,carga,213,0,0.0,3.64,1626.4,2000.0,2223.9
+kardex,GET /inventario/kardex,estres,216,0,0.0,3.7,10006.1,13000.0,12778.4
+kardex,GET /inventario/kardex,capacidad,199,0,0.0,3.41,17204.9,26000.0,26086.0
+login,POST /login,carga,90,0,0.0,1.54,4941.4,5800.0,5977.2
+login,POST /login,estres,90,0,0.0,1.54,20292.8,31000.0,31397.0
+login,POST /login,capacidad,52,0,0.0,0.9,29159.8,42000.0,42847.0
+productos,GET /productos,carga,240,0,0.0,4.11,1285.0,1600.0,1843.6
+productos,GET /productos,estres,244,0,0.0,4.18,8876.7,11000.0,11326.2
+productos,GET /productos,capacidad,231,0,0.0,3.95,16074.9,23000.0,23195.0
+stock,GET /inventario/stock,carga,214,0,0.0,3.68,1582.0,2000.0,2194.4
+stock,GET /inventario/stock,estres,216,0,0.0,3.7,10051.1,13000.0,12831.2
+stock,GET /inventario/stock,capacidad,199,0,0.0,3.4,17131.2,26000.0,26052.1

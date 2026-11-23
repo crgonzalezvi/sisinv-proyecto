@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard de Rendimiento - SisInv</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
+  h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  .sub { color: #94a3b8; margin-bottom: 24px; font-size: 0.95rem; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px; }
+  .kpi-label { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; }
+  .kpi-val { font-size: 1.7rem; font-weight: 700; margin-top: 6px; }
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; margin-bottom: 24px; }
+  .chart-box { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px; }
+  .chart-box h3 { margin: 0 0 12px; font-size: 1rem; color: #e2e8f0; }
+  table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 10px; overflow: hidden; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+  th { background: #0b1220; color: #94a3b8; font-weight: 600; }
+  .badge { padding: 3px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+  .ok { background: #14532d; color: #86efac; }
+  .warn { background: #713f12; color: #fde047; }
+  .err { background: #7f1d1d; color: #fca5a5; }
+</style>
+</head>
+<body>
+  <h1>SisInv — Dashboard de Pruebas de Rendimiento</h1>
+  <div class="sub">Comparativa consolidada de Carga, Estrés y Capacidad vía API Gateway</div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="charts">
+    <div class="chart-box"><h3>Rendimiento (Requests / segundo)</h3><canvas id="cRps"></canvas></div>
+    <div class="chart-box"><h3>Latencia p95 (ms) — menor es mejor</h3><canvas id="cP95"></canvas></div>
+    <div class="chart-box"><h3>Tasa de Fallos (%)</h3><canvas id="cFail"></canvas></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Endpoint</th><th>Perfil</th><th>Peticiones</th><th>RPS</th>
+        <th>Prom (ms)</th><th>p95 (ms)</th><th>Máx (ms)</th><th>Fallos</th><th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+<script>
+const datos = [{"tag": "entradas", "endpoint": "POST /inventario/entradas", "perfil": "carga", "reqs": 204, "fails": 0, "pct_fail": 0.0, "rps": 3.49, "avg_ms": 1653.0, "p95_ms": 2200.0, "max_ms": 2309.0}, {"tag": "entradas", "endpoint": "POST /inventario/entradas", "perfil": "estres", "reqs": 205, "fails": 0, "pct_fail": 0.0, "rps": 3.5, "avg_ms": 10495.0, "p95_ms": 13000.0, "max_ms": 13610.2}, {"tag": "entradas", "endpoint": "POST /inventario/entradas", "perfil": "capacidad", "reqs": 180, "fails": 0, "pct_fail": 0.0, "rps": 3.09, "avg_ms": 17636.2, "p95_ms": 28000.0, "max_ms": 28120.9}, {"tag": "kardex", "endpoint": "GET /inventario/kardex", "perfil": "carga", "reqs": 213, "fails": 0, "pct_fail": 0.0, "rps": 3.64, "avg_ms": 1626.4, "p95_ms": 2000.0, "max_ms": 2223.9}, {"tag": "kardex", "endpoint": "GET /inventario/kardex", "perfil": "estres", "reqs": 216, "fails": 0, "pct_fail": 0.0, "rps": 3.7, "avg_ms": 10006.1, "p95_ms": 13000.0, "max_ms": 12778.4}, {"tag": "kardex", "endpoint": "GET /inventario/kardex", "perfil": "capacidad", "reqs": 199, "fails": 0, "pct_fail": 0.0, "rps": 3.41, "avg_ms": 17204.9, "p95_ms": 26000.0, "max_ms": 26086.0}, {"tag": "login", "endpoint": "POST /login", "perfil": "carga", "reqs": 90, "fails": 0, "pct_fail": 0.0, "rps": 1.54, "avg_ms": 4941.4, "p95_ms": 5800.0, "max_ms": 5977.2}, {"tag": "login", "endpoint": "POST /login", "perfil": "estres", "reqs": 90, "fails": 0, "pct_fail": 0.0, "rps": 1.54, "avg_ms": 20292.8, "p95_ms": 31000.0, "max_ms": 31397.0}, {"tag": "login", "endpoint": "POST /login", "perfil": "capacidad", "reqs": 52, "fails": 0, "pct_fail": 0.0, "rps": 0.9, "avg_ms": 29159.8, "p95_ms": 42000.0, "max_ms": 42847.0}, {"tag": "productos", "endpoint": "GET /productos", "perfil": "carga", "reqs": 240, "fails": 0, "pct_fail": 0.0, "rps": 4.11, "avg_ms": 1285.0, "p95_ms": 1600.0, "max_ms": 1843.6}, {"tag": "productos", "endpoint": "GET /productos", "perfil": "estres", "reqs": 244, "fails": 0, "pct_fail": 0.0, "rps": 4.18, "avg_ms": 8876.7, "p95_ms": 11000.0, "max_ms": 11326.2}, {"tag": "productos", "endpoint": "GET /productos", "perfil": "capacidad", "reqs": 231, "fails": 0, "pct_fail": 0.0, "rps": 3.95, "avg_ms": 16074.9, "p95_ms": 23000.0, "max_ms": 23195.0}, {"tag": "stock", "endpoint": "GET /inventario/stock", "perfil": "carga", "reqs": 214, "fails": 0, "pct_fail": 0.0, "rps": 3.68, "avg_ms": 1582.0, "p95_ms": 2000.0, "max_ms": 2194.4}, {"tag": "stock", "endpoint": "GET /inventario/stock", "perfil": "estres", "reqs": 216, "fails": 0, "pct_fail": 0.0, "rps": 3.7, "avg_ms": 10051.1, "p95_ms": 13000.0, "max_ms": 12831.2}, {"tag": "stock", "endpoint": "GET /inventario/stock", "perfil": "capacidad", "reqs": 199, "fails": 0, "pct_fail": 0.0, "rps": 3.4, "avg_ms": 17131.2, "p95_ms": 26000.0, "max_ms": 26052.1}];
+const tags = [...new Set(datos.map(d => d.tag))];
+const perfiles = ["carga", "estres", "capacidad"];
+const colores = { carga: "#22c55e", estres: "#f59e0b", capacidad: "#ef4444" };
+
+const totalReqs = datos.reduce((s, d) => s + d.reqs, 0);
+const totalFails = datos.reduce((s, d) => s + d.fails, 0);
+const avgRps = datos.length ? (datos.reduce((s, d) => s + d.rps, 0) / datos.length).toFixed(1) : 0;
+const avgP95 = datos.length ? (datos.reduce((s, d) => s + d.p95_ms, 0) / datos.length).toFixed(0) : 0;
+const failPct = totalReqs ? ((totalFails / totalReqs) * 100).toFixed(2) : 0;
+
+document.getElementById("kpis").innerHTML = `
+  <div class="card"><div class="kpi-label">Pruebas Ejecutadas</div><div class="kpi-val">${datos.length}</div></div>
+  <div class="card"><div class="kpi-label">Total Peticiones</div><div class="kpi-val">${totalReqs.toLocaleString()}</div></div>
+  <div class="card"><div class="kpi-label">RPS Promedio</div><div class="kpi-val">${avgRps}</div></div>
+  <div class="card"><div class="kpi-label">p95 Promedio</div><div class="kpi-val">${avgP95} ms</div></div>
+  <div class="card"><div class="kpi-label">Fallos Globales</div><div class="kpi-val">${failPct}%</div></div>
+`;
+
+function hacerGrafica(canvasId, campo) {
+  const datasets = perfiles.map(p => ({
+    label: p.toUpperCase(),
+    backgroundColor: colores[p],
+    data: tags.map(t => {
+      const item = datos.find(d => d.tag === t && d.perfil === p);
+      return item ? item[campo] : 0;
+    })
+  }));
+  new Chart(document.getElementById(canvasId), {
+    type: "bar",
+    data: { labels: tags, datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#cbd5e1" } } },
+      scales: {
+        x: { ticks: { color: "#cbd5e1" }, grid: { color: "#334155" } },
+        y: { ticks: { color: "#cbd5e1" }, grid: { color: "#334155" } }
+      }
+    }
+  });
+}
+
+hacerGrafica("cRps", "rps");
+hacerGrafica("cP95", "p95_ms");
+hacerGrafica("cFail", "pct_fail");
+
+document.getElementById("tbody").innerHTML = datos.map(d => {
+  let cls = "ok", txt = "Estable";
+  if (d.pct_fail > 5 || d.p95_ms > 2000) { cls = "err"; txt = "Saturado"; }
+  else if (d.pct_fail > 0 || d.p95_ms > 800) { cls = "warn"; txt = "Degradado"; }
+  return `<tr>
+    <td>${d.endpoint}</td>
+    <td>${d.perfil.toUpperCase()}</td>
+    <td>${d.reqs.toLocaleString()}</td>
+    <td>${d.rps}</td>
+    <td>${d.avg_ms}</td>
+    <td>${d.p95_ms}</td>
+    <td>${d.max_ms}</td>
+    <td>${d.fails} (${d.pct_fail}%)</td>
+    <td><span class="badge ${cls}">${txt}</span></td>
+  </tr>`;
+}).join("");
+</script>
+</body>
+</html>
